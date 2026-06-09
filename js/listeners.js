@@ -501,6 +501,18 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
 
     setSelect('sound-partner-poke-preset', settings.partnerPokeSoundPreset || 'tone_low');
     setSoundUrlInput('sound-partner-poke-custom-url', (settings.partnerPokeCustomSoundUrl || '').trim() || legacyCustom);
+
+    // 邀请音效（5 项）
+    setSelect('sound-invite-study-preset', settings.inviteStudySoundPreset || 'default');
+    setSoundUrlInput('sound-invite-study-custom-url', settings.inviteStudyCustomSoundUrl || '');
+    setSelect('sound-invite-work-preset', settings.inviteWorkSoundPreset || 'default');
+    setSoundUrlInput('sound-invite-work-custom-url', settings.inviteWorkCustomSoundUrl || '');
+    setSelect('sound-invite-exercise-preset', settings.inviteExerciseSoundPreset || 'default');
+    setSoundUrlInput('sound-invite-exercise-custom-url', settings.inviteExerciseCustomSoundUrl || '');
+    setSelect('sound-invite-sleep-preset', settings.inviteSleepSoundPreset || 'default');
+    setSoundUrlInput('sound-invite-sleep-custom-url', settings.inviteSleepCustomSoundUrl || '');
+    setSelect('sound-invite-videocall-preset', settings.inviteVideocallSoundPreset || 'default');
+    setSoundUrlInput('sound-invite-videocall-custom-url', settings.inviteVideocallCustomSoundUrl || '');
     document.querySelectorAll('.time-fmt-opt').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.fmt === (settings.timeFormat || 'HH:mm'));
     });
@@ -1103,6 +1115,11 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
             bindPresetSelect('sound-partner-message-preset', 'partnerMessageSoundPreset');
             bindPresetSelect('sound-my-poke-preset', 'myPokeSoundPreset');
             bindPresetSelect('sound-partner-poke-preset', 'partnerPokeSoundPreset');
+            bindPresetSelect('sound-invite-study-preset', 'inviteStudySoundPreset');
+            bindPresetSelect('sound-invite-work-preset', 'inviteWorkSoundPreset');
+            bindPresetSelect('sound-invite-exercise-preset', 'inviteExerciseSoundPreset');
+            bindPresetSelect('sound-invite-sleep-preset', 'inviteSleepSoundPreset');
+            bindPresetSelect('sound-invite-videocall-preset', 'inviteVideocallSoundPreset');
 
             const bindCustomUrlInput = (inputId, settingsKey) => {
                 const el = document.getElementById(inputId);
@@ -1121,6 +1138,11 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
             bindCustomUrlInput('sound-partner-message-custom-url', 'partnerMessageCustomSoundUrl');
             bindCustomUrlInput('sound-my-poke-custom-url', 'myPokeCustomSoundUrl');
             bindCustomUrlInput('sound-partner-poke-custom-url', 'partnerPokeCustomSoundUrl');
+            bindCustomUrlInput('sound-invite-study-custom-url', 'inviteStudyCustomSoundUrl');
+            bindCustomUrlInput('sound-invite-work-custom-url', 'inviteWorkCustomSoundUrl');
+            bindCustomUrlInput('sound-invite-exercise-custom-url', 'inviteExerciseCustomSoundUrl');
+            bindCustomUrlInput('sound-invite-sleep-custom-url', 'inviteSleepCustomSoundUrl');
+            bindCustomUrlInput('sound-invite-videocall-custom-url', 'inviteVideocallCustomSoundUrl');
 
             // 本地音频文件上传
             const bindAudioUpload = (btnId, fileInputId, urlInputId, settingsKey, presetSelectId) => {
@@ -1153,6 +1175,11 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
             bindAudioUpload('upload-sound-partner-message-btn', 'upload-sound-partner-message-file', 'sound-partner-message-custom-url', 'partnerMessageCustomSoundUrl', 'sound-partner-message-preset');
             bindAudioUpload('upload-sound-my-poke-btn', 'upload-sound-my-poke-file', 'sound-my-poke-custom-url', 'myPokeCustomSoundUrl', 'sound-my-poke-preset');
             bindAudioUpload('upload-sound-partner-poke-btn', 'upload-sound-partner-poke-file', 'sound-partner-poke-custom-url', 'partnerPokeCustomSoundUrl', 'sound-partner-poke-preset');
+            bindAudioUpload('upload-sound-invite-study-btn', 'upload-sound-invite-study-file', 'sound-invite-study-custom-url', 'inviteStudyCustomSoundUrl', 'sound-invite-study-preset');
+            bindAudioUpload('upload-sound-invite-work-btn', 'upload-sound-invite-work-file', 'sound-invite-work-custom-url', 'inviteWorkCustomSoundUrl', 'sound-invite-work-preset');
+            bindAudioUpload('upload-sound-invite-exercise-btn', 'upload-sound-invite-exercise-file', 'sound-invite-exercise-custom-url', 'inviteExerciseCustomSoundUrl', 'sound-invite-exercise-preset');
+            bindAudioUpload('upload-sound-invite-sleep-btn', 'upload-sound-invite-sleep-file', 'sound-invite-sleep-custom-url', 'inviteSleepCustomSoundUrl', 'sound-invite-sleep-preset');
+            bindAudioUpload('upload-sound-invite-videocall-btn', 'upload-sound-invite-videocall-file', 'sound-invite-videocall-custom-url', 'inviteVideocallCustomSoundUrl', 'sound-invite-videocall-preset');
 
             const btnMySend = document.getElementById('test-sound-my-send-btn');
             if (btnMySend) btnMySend.addEventListener('click', () => playSound('my_send'));
@@ -1165,6 +1192,41 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
 
             const btnPartnerPoke = document.getElementById('test-sound-partner-poke-btn');
             if (btnPartnerPoke) btnPartnerPoke.addEventListener('click', () => playSound('partner_poke'));
+
+            // 邀请音效试听按钮：再次点击暂停 + 不循环（关闭弹窗也会停止，见下方监听）
+            const inviteSoundTests = [
+                ['test-sound-invite-study-btn', 'invite_study'],
+                ['test-sound-invite-work-btn', 'invite_work'],
+                ['test-sound-invite-exercise-btn', 'invite_exercise'],
+                ['test-sound-invite-sleep-btn', 'invite_sleep'],
+                ['test-sound-invite-videocall-btn', 'invite_videocall']
+            ];
+            // 记录当前哪个邀请音效正在试听
+            let _currentInvitePreviewBtnId = null;
+            inviteSoundTests.forEach(([btnId, soundType]) => {
+                const btn = document.getElementById(btnId);
+                if (!btn) return;
+                btn.addEventListener('click', () => {
+                    // 如果当前按钮正在试听，则停止
+                    if (_currentInvitePreviewBtnId === btnId) {
+                        if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound();
+                        _currentInvitePreviewBtnId = null;
+                        return;
+                    }
+                    // 否则停止其他、开始本按钮（不循环）
+                    if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound();
+                    playSound(soundType, false);
+                    _currentInvitePreviewBtnId = btnId;
+                });
+            });
+            // 关闭聊天设置弹窗时停止试听
+            const chatModalCloseBtn = document.getElementById('close-chat');
+            if (chatModalCloseBtn) {
+                chatModalCloseBtn.addEventListener('click', () => {
+                    if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound();
+                    _currentInvitePreviewBtnId = null;
+                });
+            }
 
             document.querySelectorAll('.time-fmt-opt').forEach(opt => {
                 opt.classList.toggle('active', opt.dataset.fmt === (settings.timeFormat || 'HH:mm'));
